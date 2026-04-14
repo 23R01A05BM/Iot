@@ -1,19 +1,17 @@
 #include <ESP8266WiFi.h>
+#include "ThingSpeak.h"
 
 const char* ssid = "YOUR_WIFI_NAME";
 const char* password = "YOUR_WIFI_PASSWORD";
 
-const char* host = "api.thingspeak.com";
-
-String readAPIKey = "P34F6ZQU5TOMV080";
-String channelID = "3277751";
+unsigned long channelID = 3277751;
+const char* readAPIKey = "P34F6ZQU5TOMV080";
 
 WiFiClient client;
 
 void setup() {
   Serial.begin(115200);
 
-  Serial.println("Connecting to WiFi...");
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
@@ -21,32 +19,34 @@ void setup() {
     Serial.print(".");
   }
 
-  Serial.println("\nWiFi Connected");
+  Serial.println();
+  Serial.println("WiFi Connected");
+
+  ThingSpeak.begin(client);
 }
 
 void loop() {
+  long temperature = ThingSpeak.readLongField(channelID, 2, readAPIKey);
 
-  if (client.connect(host, 80)) {
-
-    // 🔥 URL using your real channel
-    String url = "/channels/3277751/feeds/last.json?api_key=P34F6ZQU5TOMV080";
-
-    Serial.println("Requesting data from ThingSpeak...");
-
-    client.print(String("GET ") + url + " HTTP/1.1\r\n" +
-                 "Host: " + host + "\r\n" +
-                 "Connection: close\r\n\r\n");
-
-    while (client.connected() || client.available()) {
-      if (client.available()) {
-        String line = client.readStringUntil('\n');
-        Serial.println(line);
-      }
-    }
+  if (ThingSpeak.getLastReadStatus() == 200) {
+    Serial.print("Temperature: ");
+    Serial.println(temperature);
+  } else {
+    Serial.println("Error reading temperature data");
   }
 
-  client.stop();
-  Serial.println("Waiting...\n");
+  delay(1000);
 
-  delay(15000); // ThingSpeak delay
+  long humidity = ThingSpeak.readLongField(channelID, 1, readAPIKey);
+
+  if (ThingSpeak.getLastReadStatus() == 200) {
+    Serial.print("Humidity: ");
+    Serial.println(humidity);
+  } else {
+    Serial.println("Error reading humidity data");
+  }
+
+  Serial.println("----------------------");
+
+  delay(15000);
 }
